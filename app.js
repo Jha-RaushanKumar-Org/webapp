@@ -1,8 +1,8 @@
 const app = require('./index');
 var mysql = require("mysql");
-
+require('dotenv').config();
 const conn = require('./database');
-const PORT = 3000;
+const PORT = process.env.DB_PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
 
