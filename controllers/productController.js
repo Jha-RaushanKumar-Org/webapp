@@ -57,6 +57,9 @@ exports.createProduct = async function (req, res) {
                     if (quantity < 0) {
                         return res.status(400).json('Quantity should be positive.');
                     }
+                    if (quantity > 100) {
+                        return res.status(400).json('Quantity should be max 100.');
+                    }
                     if (isString(quantity)) {
                         return res.status(400).json('Quantity should be integer.');
                     }
@@ -222,6 +225,9 @@ exports.updateProduct = async function (req, res) {
                             }
                             if (quantity < 0) {
                                 return res.status(400).json('Quantity should be positive.');
+                            }
+                            if (quantity > 100) {
+                                return res.status(400).json('Quantity should be max 100.');
                             }
                             if (isString(quantity)) {
                                 return res.status(400).json('Quantity should be integer.');

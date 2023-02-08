@@ -17,6 +17,16 @@ exports.createUser = async function (req, res){
     if (Object.keys(req.body).length === 0) {
         return res.status(400).json('No user created');
     }
+    const first_name=req.body.first_name;
+    const last_name=req.body.last_name;
+    const username=req.body.username;
+    const password=req.body.password;
+    if (!first_name || !last_name || !password || !username) {
+        return res.status(400).json("Data Incomplete");
+    }
+    if (req.body.account_created || req.body.account_updated) {
+        return res.status(400).json("Enter only first_name, last_name, password and username");
+    }
 
     const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     if (!emailRegex.test(req.body.username)) {
@@ -25,19 +35,11 @@ exports.createUser = async function (req, res){
 
 
     var hashedPassword = await bcrypt.hash(req.body.password, 10);
-    const first_name=req.body.first_name;
-    const last_name=req.body.last_name;
-    const username=req.body.username;
-    const password=req.body.password;
+    
     const account_created = new Date().toISOString();
     const account_updated = new Date().toISOString();
 
-    if (!first_name || !last_name || !password || !username) {
-        return res.status(400).json("Data Incomplete");
-    }
-    if (req.body.account_created || req.body.account_updated) {
-        return res.status(400).json("Enter only first_name, last_name, password and username");
-    }
+    
     conn.query('SELECT count(*) AS cnt FROM users WHERE username = ?',[req.body.username], (err, response) => {
         if (response[0].cnt != 0) {
             return res.status(400).json("User already exists. Enter new user");
@@ -75,6 +77,7 @@ exports.getUser = async function (req, res){
         return res.status(401).json("Invalid Authentication");
     }
     
+    
     conn.query('SELECT count(*) as cnt FROM users WHERE username = ?',[username], async (err, response) =>{
         if(response[0].cnt ==0){
             return res.status(401).json("Invalid Authentication");
@@ -109,12 +112,8 @@ exports.updateUser = async function (req, res){
     const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
     const [username, password] = credentials.split(':'); 
 
-
     if (!username || !password) {
         return res.status(401).json("Invalid Authentication");
-    }
-    if (req.body.account_created || req.body.account_updated) {
-        return res.status(400).json("Enter only first_name, last_name, password and username");
     }
     
     conn.query('SELECT count(*) as cnt FROM users WHERE username = ?',[username], async (err, response) =>{
@@ -137,7 +136,7 @@ exports.updateUser = async function (req, res){
                         const existing_username=req.body.username;
                         const existing_password=req.body.password;
                         const account_updated = new Date().toISOString();
-                        var hashedPassword = await bcrypt.hash(req.body.password, 10);
+                        
                         
                         if (!existing_first_name || !existing_last_name || !existing_password || !existing_username) {
                             return res.status(400).json("Data Incomplete");
@@ -148,7 +147,7 @@ exports.updateUser = async function (req, res){
                         if (req.body.account_created) {
                             return res.status(400).json("Enter only first_name, last_name, password and username");
                         }
-        
+                        var hashedPassword = await bcrypt.hash(req.body.password, 10);
                         conn.query('UPDATE users SET first_name = ?,last_name = ?,password = ?,account_updated  = ? WHERE username = ?',[existing_first_name,existing_last_name,hashedPassword,account_updated,username],(error,result)=>{
                             if(error){
                                 console.log(error);
