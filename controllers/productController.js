@@ -63,7 +63,7 @@ exports.createProduct = async function (req, res) {
                     if (isString(quantity)) {
                         return res.status(400).json('Quantity should be integer.');
                     }
-                    if (req.body.date_added || req.body.date_last_updated) {
+                    if (req.body.id || req.body.date_added || req.body.date_last_updated || req.body.owner_user_id) {
                         return res.status(400).json("Enter only name, description, sku, manufacturer and quantity");
                     }
                     conn.query('SELECT count(*) AS cnt FROM product WHERE sku = ?', [req.body.sku], (err, response) => {
@@ -232,7 +232,7 @@ exports.updateProduct = async function (req, res) {
                             if (isString(quantity)) {
                                 return res.status(400).json('Quantity should be integer.');
                             }
-                            if (req.body.date_added || req.body.date_last_updated) {
+                            if (req.body.id || req.body.date_added || req.body.date_last_updated || req.body.owner_user_id) {
                                 return res.status(400).json("Enter only name, description, sku, manufacturer and quantity");
                             }
                             conn.query('SELECT count(*) AS cnt FROM product WHERE sku = ? and id != ? ', [req.body.sku, req.params.id], (err, response) => {
