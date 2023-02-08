@@ -24,7 +24,7 @@ exports.createUser = async function (req, res){
     if (!first_name || !last_name || !password || !username) {
         return res.status(400).json("Data Incomplete");
     }
-    if (req.body.account_created || req.body.account_updated) {
+    if (req.body.id ||req.body.account_created || req.body.account_updated) {
         return res.status(400).json("Enter only first_name, last_name, password and username");
     }
 
@@ -144,7 +144,7 @@ exports.updateUser = async function (req, res){
                         if(username != existing_username){
                             return res.status(400).json("User name can't be updated.");
                         }
-                        if (req.body.account_created) {
+                        if (req.body.id ||req.body.account_created || req.body.account_updated) {
                             return res.status(400).json("Enter only first_name, last_name, password and username");
                         }
                         var hashedPassword = await bcrypt.hash(req.body.password, 10);
