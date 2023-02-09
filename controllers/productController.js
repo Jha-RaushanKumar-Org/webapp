@@ -210,13 +210,6 @@ exports.updateProduct = async function (req, res) {
                                 return res.status(400).json('No Product created');
                             }
                             
-                            for (const key in req.body) {
-                                if (key !== "name" || key != "description" || key != "sku" || key != "manufacturer" || key != "quantity") {
-                                    return res.status(400).send({
-                                        message: "bad request: invalid field in the body"
-                                    })
-                                }
-                            }
                             const name = req.body.name;
                             const description = req.body.description;
                             const sku = req.body.sku;
