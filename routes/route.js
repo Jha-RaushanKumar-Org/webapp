@@ -8,5 +8,5 @@ module.exports = (app) => {
     app.get("/v1/product/:id", productControl.getProduct);
     app.delete("/v1/product/:id", productControl.deleteProduct);
     app.put("/v1/product/:id", productControl.updateProduct);
-    app.patch("/v1/product/:id", productControl.updateProduct);
+    app.patch("/v1/product/:id", productControl.updatePatchProduct);
 };
