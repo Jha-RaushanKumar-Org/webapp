@@ -25,6 +25,12 @@ variable "ssh_username" {
   sensitive = true
 }
 
+variable "zip_file_path" {
+  type      = string
+  default   = ""
+  sensitive = true
+}
+
 
 source "amazon-ebs" "backendApp" {
   region        = "${var.aws_region}"
@@ -51,7 +57,7 @@ build {
   ]
 
   provisioner "file" {
-    source      = "../webapp.zip"
+    source      = "${var.zip_file_path}"
     destination = "/home/ec2-user/webapp.zip"
   }
 

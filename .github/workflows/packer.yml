@@ -23,10 +23,18 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Zip folder creation
+        run: |
+          mkdir app_artifact
+          zip -r webapp . -x ".git/*" ".github/*" "node_modules/*" "package-lock.json"
+          mv webapp.zip app_artifact
 
-      - name: Validate Template
+      
+      - name: Build Template
         run: |
           cd packer
           packer init app.pkr.hcl
           packer validate app.pkr.hcl
-          packer build app.pkr.hcl
+          packer build \
+          -var "zip_file_path=/home/runner/work/webapp/webapp/app_artifact/backendApp.zip" app.pkr.hcl
