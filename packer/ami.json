@@ -1,6 +1,7 @@
 {
     "variables": {
-        "ssh_username": "ec2-user"
+        "ssh_username": "ec2-user",
+        "zip_file_path":""
 
         
     },
