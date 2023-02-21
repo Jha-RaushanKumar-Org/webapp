@@ -23,3 +23,9 @@ jobs:
       - run: npm ci
       - run: npm install
       - run: npm test
+
+      - name: Validate Packer
+        run: |
+          cd packer
+          packer init app.pkr.hcl
+          packer validate app.pkr.hcl

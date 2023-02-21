@@ -1,0 +1,29 @@
+{
+    "variables": {
+        "ssh_username": "ec2-user"
+
+        
+    },
+    "builders": [
+        {
+            "type": "amazon-ebs",
+            
+            "instance_type": "t2.micro",
+            "ssh_username": "{{user `ssh_username`}}",
+            
+            "ami_block_device_mappings": [
+                {
+                    "delete_on_termination": true,
+                    "device_name": "/dev/sdp",
+                    "volume_size": 8,
+                    "volume_type": "gp2"
+                }
+            ],
+            "tags": {
+                "Tool": "Packer",
+                "Author": "user",
+                "Environment": "dev"
+            }
+        }
+    ]
+}
