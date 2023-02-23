@@ -10,7 +10,5 @@ ExecStart=/usr/bin/node /home/ec2-user/webapp/app.js
 Restart=on-Failure
 User=ec2-user
 
-EnvironmentFile=/etc/environment
-
 [Install]
 WantedBy=multi-user.target
