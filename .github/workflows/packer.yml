@@ -27,14 +27,16 @@ jobs:
       - name: Zip folder creation
         run: |
           mkdir app_artifact
-          zip -r webapp . -x ".git/*" ".github/*" "node_modules/*" "package-lock.json"
+          zip -r webapp . -x ".git/" ".github/" "node_modules/*" "package-lock.json"
           mv webapp.zip app_artifact
 
       
       - name: Build Template
+        
         run: |
           cd packer
           packer init app.pkr.hcl
           packer validate app.pkr.hcl
           packer build \
-          -var "zip_file_path=/home/runner/work/webapp/webapp/app_artifact/webapp.zip" app.pkr.hcl
+          -var "zip_file_path=/home/runner/work/webapp/webapp/app_artifact/webapp.zip" app.pkr.hcl 
+      
