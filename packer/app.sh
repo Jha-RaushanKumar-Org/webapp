@@ -23,19 +23,23 @@ mysql -u root --password=$MYSQL_ROOT_PASSWORD --connect-expired-password -e "ALT
 echo "##Unzipping of Application##"
 
 sudo yum install unzip -y
+
 cd ~/ && unzip webapp.zip
-cd ~/webapp && npm i 
+pwd
+ls
+sleep 10
+npm install
 
- cd ~/webapp
+cd ~/webapp
 
- sudo touch .env
- sudo chmod 777 .env
+sudo touch .env
+sudo chmod 777 .env
 
- echo "DB_HOST=localhost" >> .env
- echo "DB_PORT=3000" >> .env
- echo "DB_USER=root" >> .env
- echo "DB_PASSWORD=Raushan@123" >> .env
- echo "DB_NAME=csye_6225" >> .env
+echo "DB_HOST=localhost" >> .env
+echo "DB_PORT=3000" >> .env
+echo "DB_USER=root" >> .env
+echo "DB_PASSWORD=Raushan@123" >> .env
+echo "DB_NAME=csye_6225" >> .env
 
 sudo mv /tmp/webapp.service /etc/systemd/system/webapp.service
 sudo systemctl enable webapp.service
