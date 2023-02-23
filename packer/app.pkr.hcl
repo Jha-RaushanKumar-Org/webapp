@@ -16,13 +16,11 @@ variable "subnet_id" {
 variable "aws_region" {
   type      = string
   default   = "us-east-1"
-  sensitive = true
 }
 
 variable "ssh_username" {
   type      = string
   default   = "ec2-user"
-  sensitive = true
 }
 
 variable "zip_file_path" {
