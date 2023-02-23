@@ -28,7 +28,6 @@ variable "ssh_username" {
 variable "zip_file_path" {
   type      = string
   default   = ""
-  sensitive = true
 }
 
 
