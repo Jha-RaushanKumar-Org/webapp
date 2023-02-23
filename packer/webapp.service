@@ -1,5 +1,5 @@
 [Unit]
-Description=Web App
+Description=WebApp
 After=network.target
 
 [Service]
