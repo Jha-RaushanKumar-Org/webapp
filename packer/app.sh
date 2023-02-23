@@ -24,11 +24,11 @@ echo "##Unzipping of Application##"
 
 sudo yum install unzip -y
 
-cd ~/ && unzip webapp.zip
-pwd
-ls
-sleep 10
-npm install
+
+mkdir ~/webapp
+
+unzip webapp.zip -d ~/webapp
+cd ~/webapp && npm i
 
 cd ~/webapp
 
