@@ -1,5 +1,5 @@
 [Unit]
-Description=Web App
+Description=WebApp
 After=network.target
 
 [Service]
@@ -9,7 +9,6 @@ Type=simple
 ExecStart=/usr/bin/node /home/ec2-user/webapp/app.js
 Restart=on-Failure
 User=ec2-user
-
 
 [Install]
 WantedBy=multi-user.target
