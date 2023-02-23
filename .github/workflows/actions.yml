@@ -24,6 +24,13 @@ jobs:
       - run: npm install
       - run: npm test
 
+      - name: Zip folder creation
+        run: |
+          mkdir app_artifact
+          zip -r webapp . -x ".git/" ".github/" "node_modules/*" "package-lock.json"
+          mv webapp.zip app_artifact
+
+      
       - name: Validate Packer
         run: |
           cd packer

@@ -37,6 +37,5 @@ jobs:
           cd packer
           packer init app.pkr.hcl
           packer validate app.pkr.hcl
-          packer build \
-          -var "zip_file_path=/home/runner/work/webapp/webapp/app_artifact/webapp.zip" app.pkr.hcl 
+          packer build app.pkr.hcl 
       
