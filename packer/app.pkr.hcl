@@ -54,7 +54,7 @@ build {
   ]
 
   provisioner "file" {
-    source      = "${var.zip_file_path}"
+    source      = "../app_artifact/webapp.zip"
     destination = "/home/ec2-user/webapp.zip"
   }
 
