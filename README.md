@@ -1,6 +1,5 @@
 # webapp
 
-
 Author:  `Raushan Kumar Jha`
 
 - Web Application with different APIs functionalities
@@ -35,3 +34,5 @@ Build and Deploy:
 Testing:
  - npm test
     
+### AWS Components used:
+EC2 Instances, Security Groups, AMI,
