@@ -1,7 +1,5 @@
 var express = require("express");
-var mysql = require("mysql");
 
-const conn = require('./database');
 const app = express();
 
 const cors = require('cors');

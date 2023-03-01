@@ -1,4 +1,3 @@
-const conn = require('../database');
 const hashPassword = require('../utils');
 const bcrypt = require('bcrypt');
 const db = require("../config/sequalize");
