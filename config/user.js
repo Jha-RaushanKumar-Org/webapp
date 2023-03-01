@@ -18,13 +18,12 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING
         },
         account_created: {
-            type: DataTypes.STRING    
+            type: DataTypes.STRING
         },
         account_updated: {
-            type: DataTypes.STRING    
+            type: DataTypes.STRING
         }
-    },
-    {
+    }, {
         freezeTableName: true,
         createdAt: false,
         updatedAt: false

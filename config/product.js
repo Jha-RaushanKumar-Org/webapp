@@ -18,19 +18,24 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING
         },
         quantity: {
-            type: DataTypes.INTEGER
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+            validate: {
+                min: 0,
+                max: 100,
+            },
         },
         date_added: {
-            type: DataTypes.STRING    
+            type: DataTypes.STRING
         },
         date_last_updated: {
-            type: DataTypes.STRING    
+            type: DataTypes.STRING
         },
         owner_user_id: {
-            type: DataTypes.INTEGER    
+            type: DataTypes.INTEGER
         }
-    },
-    {
+    }, {
         freezeTableName: true,
         createdAt: false,
         updatedAt: false
