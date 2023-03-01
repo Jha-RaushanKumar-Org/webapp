@@ -15,6 +15,21 @@ app.get("/healthz",(req, res)=>{
 
 routes(app);
 
-
+// Handle undefined routes
+app.use((req, res, next) => {
+    const error = new Error("Not Found");
+    error.status = 404;
+    next(error);
+  });
+  
+  // Error handling middleware
+  app.use((err, req, res, next) => {
+    res.status(err.status || 500);
+    res.json({
+      error: {
+        message: err.message,
+      },
+    });
+  });
 
 module.exports = app;

@@ -12,5 +12,5 @@ db.sequelize = sequelize;
 db.models = {};
 db.models.User = require('./user')(sequelize, Sequelize.DataTypes);
 db.models.Product = require('./product')(sequelize, Sequelize.DataTypes);
-
+db.models.images = require("./image")(sequelize, Sequelize);
 module.exports = db;
