@@ -1,7 +1,5 @@
 const app = require('./index');
-var mysql = require("mysql");
 require('dotenv').config();
-const conn = require('./database');
 const db = require("./config/sequalize");
 const PORT = process.env.DB_PORT;
 app.listen(PORT, () => console.log(`Server running on :${PORT}`));
