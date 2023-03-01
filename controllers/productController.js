@@ -1,93 +1,97 @@
 const conn = require('../database');
 const hashPassword = require('../utils');
+const Sequelize = require("sequelize");
 const bcrypt = require('bcrypt');
-
+const db = require("../config/sequalize");
+const User = db.models.User;
+const Product = db.models.Product;
+const Op = Sequelize.Op;
 const basicAuthentication = require('../utils');
 const comparePasswords = require('../utils');
 
 
 exports.createProduct = async function (req, res) {
 
-    if (!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
-        return res.status(401).json("Request Unauthorized");
-    }
-    const base64Credentials = req.headers.authorization.split(' ')[1];
-    const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-    const [username, password] = credentials.split(':');
-
-
-    if (!username || !password) {
-        return res.status(401).json("Invalid Authentication");
-    }
-
-    conn.query('SELECT count(*) as cnt FROM users WHERE username = ?', [username], async (err, response) => {
-        if (response[0].cnt == 0) {
-            return res.status(401).json("Invalid Authentication");
-        } else {
-            conn.query('SELECT * FROM users WHERE username = ?', [username], async (err, response) => {
-                const passauthentication = await bcrypt.compare(password, response[0].password);
-                if (!passauthentication) {
-                    return res.status(401).json("Invalid Authentication");
-                } else {
-                    let reqBody;
-                    if (req.body) {
-                        reqBody = Object.keys(req.body);
-                    } else {
-                        reqBody = null;
-                    }
-
-                    if (Object.keys(req.body).length === 0) {
-                        return res.status(400).json('No Product created');
-                    }
-                    const name = req.body.name;
-                    const description = req.body.description;
-                    const sku = req.body.sku;
-                    const manufacturer = req.body.manufacturer;
-                    const quantity = req.body.quantity;
-                    const date_added = new Date().toISOString();
-                    const date_last_updated = new Date().toISOString();
-                    var owner_user_id
-                    conn.query('SELECT id as id FROM users WHERE username = ?', [username], async (err, response) => {
-                        owner_user_id = response[0].id;
-                    });
-
-                    if (!name || !description || !sku || !manufacturer || !quantity) {
-                        return res.status(400).json("Data Incomplete");
-                    }
-                    if (quantity < 0) {
-                        return res.status(400).json('Quantity should be positive.');
-                    }
-                    if (quantity > 100) {
-                        return res.status(400).json('Quantity should be max 100.');
-                    }
-                    if (isString(quantity)) {
-                        return res.status(400).json('Quantity should be integer.');
-                    }
-                    if (req.body.id || req.body.date_added || req.body.date_last_updated || req.body.owner_user_id) {
-                        return res.status(400).json("Enter only name, description, sku, manufacturer and quantity");
-                    }
-                    conn.query('SELECT count(*) AS cnt FROM product WHERE sku = ?', [req.body.sku], (err, response) => {
-                        if (response[0].cnt != 0) {
-                            return res.status(400).json("Product with same sku already exists. Enter new sku");
-                        } else {
-                            conn.query('INSERT INTO product VALUES (null,?,?,?,?,?,?,?,?)', [name, description, sku, manufacturer, quantity, date_added, date_last_updated, owner_user_id], (error, result) => {
-                                if (error) {
-                                    console.log(error);
-                                    return res.status(400).json("Error creating product in Database.");
-                                } else {
-                                    conn.query('SELECT * FROM product WHERE sku = ?', [sku], async (err, response) => {
-                                        return res.status(201).json(response[0]);
-                                    });
-
-                                }
-                            });
-                        }
-                    });
-                }
-
+    try {
+        const fields = req.body;
+        for (const key in fields) {
+            if (
+                key !== "name" &&
+                key !== "description" &&
+                key !== "sku" &&
+                key !== "manufacturer" &&
+                key != "quantity"
+            ) {
+                return res.status(400).send({
+                    error: "Invalid field in request body",
+                });
+            }
+        }
+        if (
+            !req.body.name ||
+            !req.body.description ||
+            !req.body.sku ||
+            !req.body.manufacturer ||
+            req.body.quantity == null
+        ) {
+            return res.status(400).send({
+                error: "Missing field in request body",
             });
         }
-    });
+        const username = getUsername(req);
+        const {
+            name,
+            description,
+            sku,
+            manufacturer,
+            quantity
+        } = req.body;
+
+        const owner = await User.findOne({
+            where: {
+                username: username
+            }
+        });
+
+        if (!(await checkSku(sku))) {
+            if (!Number.isInteger(quantity)) {
+                return res.status(400).send({
+                    error: "Quantity cannot be string",
+                });
+            }
+            const addProduct = await Product.create({
+                name: name,
+                description: description,
+                sku: sku,
+                manufacturer: manufacturer,
+                quantity: quantity,
+                date_added: new Date().toISOString(),
+                date_last_updated: new Date().toISOString(),
+                owner_user_id: owner.dataValues.id,
+            });
+            res.status(201).send({
+                id: addProduct.dataValues.id,
+                name: addProduct.dataValues.name,
+                description: addProduct.dataValues.description,
+                sku: addProduct.dataValues.sku,
+                manufacturer: addProduct.dataValues.manufacturer,
+                quantity: addProduct.dataValues.quantity,
+                date_added: addProduct.dataValues.date_added,
+                date_last_updated: addProduct.dataValues.date_last_updated,
+                owner_user_id: addProduct.dataValues.owner_user_id,
+            });
+        } else {
+            res.status(400).send({
+                error: "Duplicate SKU",
+            });
+        }
+    } catch (err) {
+        res.status(400).json({
+            message: "Bad Request",
+            error: err.message
+        });
+        console.log(err);
+    }
 
 }
 
@@ -97,397 +101,361 @@ function isString(input) {
 
 exports.getProduct = async function (req, res) {
 
-    conn.query('SELECT count(*) as cnt FROM product WHERE id = ?', [req.params.id], async (err, response) => {
-        if (response[0].cnt == 0) {
-            return res.status(404).json("Product not found");
-        } else {
-            conn.query('SELECT * FROM product WHERE id = ?', [req.params.id], async (err, response) => {
-                return res.status(200).json(response);
+    try {
+        const id = req.params.productId;
+
+        const pid = parseInt(id);
+        if (pid != id) {
+            return res.status(400).send({
+                error: "Invalid Product Id",
             });
         }
-    });
+
+        const results = await Product.findOne({
+            where: {
+                id: id
+            }
+        });
+        if (results) {
+            res.status(200).send({
+                id: results.dataValues.id,
+                name: results.dataValues.name,
+                description: results.dataValues.description,
+                sku: results.dataValues.sku,
+                manufacturer: results.dataValues.manufacturer,
+                quantity: results.dataValues.quantity,
+                date_added: results.dataValues.date_added,
+                date_last_updated: results.dataValues.date_last_updated,
+                owner: results.dataValues.owner_user_id,
+            });
+        } else {
+            res.status(404).send({
+                message: "Not Found"
+            });
+        }
+    } catch (err) {
+        res.status(500);
+        console.log(err);
+    }
 
 
 }
 
 exports.deleteProduct = async function (req, res) {
 
-    if (!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
-        return res.status(401).json("Request Unauthorized");
-    }
-    const base64Credentials = req.headers.authorization.split(' ')[1];
-    const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-    const [username, password] = credentials.split(':');
+    try {
+        const username = getUsername(req);
+        const id = req.params.productId;
+        const pid = parseInt(id);
+        if (pid != id) {
+            return res.status(400).send({
+                error: "Invalid Product Id",
+            });
+        }
 
+        const searchProduct = await Product.findOne({
+            where: {
+                id: id
+            }
+        });
 
-    if (!username || !password) {
-        return res.status(401).json("Invalid Authentication");
-    }
+        if (searchProduct == null) {
+            return res.status(404).send({
+                message: "Product Not Found"
+            });
+        }
 
-    conn.query('SELECT count(*) as cnt FROM users WHERE username = ?', [username], async (err, response) => {
-        if (response[0].cnt == 0) {
-            return res.status(401).json("Invalid Authentication");
-        } else {
-            conn.query('SELECT * FROM users WHERE username = ?', [username], async (err, response) => {
-                const passauthentication = await bcrypt.compare(password, response[0].password);
-                if (!passauthentication) {
-                    return res.status(401).json("Invalid Authentication");
-                } else {
-
-                    conn.query('SELECT count(*) as cnt1 FROM product WHERE owner_user_id = ? and id = ?', [response[0].id, req.params.id], async (err, response1) => {
-                        if (response1[0].cnt1 == 0) {
-                            conn.query('SELECT count(*) as cnt FROM product WHERE id = ?', [req.params.id], (error, result) => {
-                                if (result[0].cnt == 0) {
-                                    return res.status(404).json("Product doesn't exists");
-                                } else {
-                                    return res.status(403).json("Forbidden");
-                                }
-                            });
-                        } else {
-                            conn.query('DELETE FROM product WHERE id = ?', [req.params.id], (error, result) => {
-                                if (error) {
-                                    console.log(error);
-                                    return res.status(400).json("Error deleting user in Database.");
-                                } else {
-                                    return res.status(204).json('Product successfully deleted');
-
-                                }
-                            });
-                        }
-                    });
-
+        if (await authUser(username, id)) {
+            const results = await Product.destroy({
+                where: {
+                    id: id
                 }
             });
-
-
+            res.status(204).send();
+        } else {
+            res.status(403).send({
+                message: "Forbidden"
+            });
         }
-    });
+    } catch (err) {
+        res.status(500);
+        console.log(err);
+    }
 
 }
 
 exports.updateProduct = async function (req, res) {
 
-    if (!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
-        return res.status(401).json("Request Unauthorized");
-    }
-    const base64Credentials = req.headers.authorization.split(' ')[1];
-    const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-    const [username, password] = credentials.split(':');
+    try {
+        const username = getUsername(req);
 
+        const id = req.params.productId;
 
-    if (!username || !password) {
-        return res.status(401).json("Invalid Authentication");
-    }
-
-    conn.query('SELECT count(*) as cnt FROM users WHERE username = ?', [username], async (err, response) => {
-        if (response[0].cnt == 0) {
-            return res.status(401).json("Invalid Authentication");
-        } else {
-            conn.query('SELECT * FROM users WHERE username = ?', [username], async (err, response) => {
-                const passauthentication = await bcrypt.compare(password, response[0].password);
-                if (!passauthentication) {
-                    return res.status(401).json("Invalid Authentication");
-                } else {
-
-                    conn.query('SELECT count(*) as cnt1 FROM product WHERE owner_user_id = ? and id = ?', [response[0].id, req.params.id], async (err, response1) => {
-                        if (response1[0].cnt1 == 0) {
-                            conn.query('SELECT count(*) as cnt FROM product WHERE id = ?', [req.params.id], (error, result) => {
-                                if (result[0].cnt == 0) {
-                                    return res.status(404).json("Product doesn't exists");
-                                } else {
-                                    return res.status(403).json("Forbidden");
-                                }
-                            });
-                        } else {
-                            let reqBody;
-                            if (req.body) {
-                                reqBody = Object.keys(req.body);
-                            } else {
-                                reqBody = null;
-                            }
-
-                            if (Object.keys(req.body).length === 0) {
-                                return res.status(400).json('No Product created');
-                            }
-                            
-                            const name = req.body.name;
-                            const description = req.body.description;
-                            const sku = req.body.sku;
-                            const manufacturer = req.body.manufacturer;
-                            const quantity = req.body.quantity;
-                            const date_last_updated = new Date().toISOString();
-                            var owner_user_id
-                            conn.query('SELECT id as id FROM users WHERE username = ?', [username], async (err, response) => {
-                                owner_user_id = response[0].id;
-                            });
-
-                            if (!name || !description || !sku || !manufacturer || !quantity) {
-                                return res.status(400).json("Data Incomplete");
-                            }
-                            if (quantity < 0) {
-                                return res.status(400).json('Quantity should be positive.');
-                            }
-                            if (quantity > 100) {
-                                return res.status(400).json('Quantity should be max 100.');
-                            }
-                            if (isString(quantity)) {
-                                return res.status(400).json('Quantity should be integer.');
-                            }
-                            if (req.body.id || req.body.date_added || req.body.date_last_updated || req.body.owner_user_id) {
-                                return res.status(400).json("Enter only name, description, sku, manufacturer and quantity");
-                            }
-                            conn.query('SELECT count(*) AS cnt FROM product WHERE sku = ? and id != ? ', [req.body.sku, req.params.id], (err, response) => {
-                                if (response[0].cnt != 0) {
-                                    return res.status(400).json("Product with same sku already exists. Enter new sku");
-                                } else {
-                                    conn.query('UPDATE product SET name = ?, description = ?,sku  = ?, manufacturer = ?, quantity = ?, date_last_updated = ? WHERE id = ?', [name, description, sku, manufacturer, quantity, date_last_updated, req.params.id], (error, result) => {
-                                        if (error) {
-                                            console.log(error);
-                                            return res.status(400).json("Error updating product in Database.");
-                                        } else {
-                                            return res.status(204).json('Product successfully updated');
-
-                                        }
-                                    });
-                                }
-                            });
-
-                        }
-                    });
-
-                }
+        const pid = parseInt(id);
+        if (pid != id) {
+            return res.status(400).send({
+                error: "Invalid Product Id",
             });
         }
-    });
+
+        const {
+            name,
+            description,
+            sku,
+            manufacturer,
+            quantity
+        } = req.body;
+
+        const searchProduct = await Product.findOne({
+            where: {
+                id: id
+            }
+        });
+
+        if (searchProduct == null) {
+            return res.status(404).send({
+                message: " Product Not Found"
+            });
+        }
+
+        if (await authUser(username, id)) {
+            const fields = req.body;
+            for (const key in fields) {
+                if (
+                    key !== "name" &&
+                    key !== "description" &&
+                    key !== "sku" &&
+                    key !== "manufacturer" &&
+                    key != "quantity"
+                ) {
+                    return res.status(400).send({
+                        error: "Invalid field in request body",
+                    });
+                }
+            }
+
+            if (
+                !req.body.name ||
+                !req.body.description ||
+                !req.body.sku ||
+                !req.body.manufacturer ||
+                req.body.quantity == null
+            ) {
+                return res.status(400).send({
+                    error: "Missing field in request body",
+                });
+            }
+
+            if (!(await checkSku(sku, id))) {
+                if (!Number.isInteger(quantity)) {
+                    return res.status(400).send({
+                        error: "Quantity cannot be string",
+                    });
+                }
+                const updateProduct = await Product.update({
+                    name: name,
+                    description: description,
+                    sku: sku,
+                    manufacturer: manufacturer,
+                    quantity: quantity,
+                    date_last_updated: new Date().toISOString(),
+                }, {
+                    where: {
+                        id: id
+                    }
+                });
+                res.status(204).send();
+            } else {
+                res.status(400).send({
+                    error: "Duplicate SKU",
+                });
+            }
+        } else {
+            res.status(403).send({
+                message: "Forbidden"
+            });
+        }
+    } catch (err) {
+        res.status(400).json({
+            message: "Bad Request",
+            error: err.message
+        });
+        console.log(err);
+    }
 
 }
 
 exports.updatePatchProduct = async function (req, res) {
 
-    if (!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
-        return res.status(401).json("Request Unauthorized");
-    }
-    const base64Credentials = req.headers.authorization.split(' ')[1];
-    const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-    const [username, password] = credentials.split(':');
+    try {
+        const username = getUsername(req);
 
-
-    if (!username || !password) {
-        return res.status(401).json("Invalid Authentication");
-    }
-
-    conn.query('SELECT count(*) as cnt FROM users WHERE username = ?', [username], async (err, response) => {
-        if (response[0].cnt == 0) {
-            return res.status(401).json("Invalid Authentication");
-        } else {
-            conn.query('SELECT * FROM users WHERE username = ?', [username], async (err, response) => {
-                const passauthentication = await bcrypt.compare(password, response[0].password);
-                if (!passauthentication) {
-                    return res.status(401).json("Invalid Authentication");
-                } else {
-
-                    conn.query('SELECT count(*) as cnt1 FROM product WHERE owner_user_id = ? and id = ?', [response[0].id, req.params.id], async (err, response1) => {
-                        if (response1[0].cnt1 == 0) {
-                            conn.query('SELECT count(*) as cnt FROM product WHERE id = ?', [req.params.id], (error, result) => {
-                                if (result[0].cnt == 0) {
-                                    return res.status(404).json("Product doesn't exists");
-                                } else {
-                                    return res.status(403).json("Forbidden");
-                                }
-                            });
-                        } else {
-                            let reqBody;
-                            if (req.body) {
-                                reqBody = Object.keys(req.body);
-                            } else {
-                                reqBody = null;
-                            }
-
-                            if (Object.keys(req.body).length === 0) {
-                                return res.status(400).json('No Product Updated');
-                            }
-                            var name = req.body.name;
-                            var description = req.body.description;
-                            var sku = req.body.sku;
-                            var manufacturer = req.body.manufacturer;
-                            var quantity = req.body.quantity;
-                            var len = Object.keys(req.body).length;
-                            const date_last_updated = new Date().toISOString();
-                            if (req.body.id || req.body.date_added || req.body.date_last_updated || req.body.owner_user_id) {
-                                return res.status(400).json("Enter only name, description, sku, manufacturer and quantity");
-                            }
-                            if (name) {
-                                conn.query('UPDATE product SET name = ?, date_last_updated = ? WHERE id = ?', [name, date_last_updated, req.params.id], (error, result) => {
-                                    if (error) {
-                                        console.log(error);
-                                        return res.status(400).json("Error updating product in Database.");
-                                    } else {
-                                        len--;
-                                        if (len == 0) {
-                                            return res.status(204).json('Product successfully updated');
-                                        }
-                                    }
-
-                                });
-                            }
-                            if (description) {
-                                conn.query('UPDATE product SET description = ?, date_last_updated = ? WHERE id = ?', [description, date_last_updated, req.params.id], (error, result) => {
-                                    if (error) {
-                                        console.log(error);
-                                        return res.status(400).json("Error updating product in Database.");
-                                    } else {
-                                        len--;
-                                        if (len == 0) {
-                                            return res.status(204).json('Product successfully updated');
-                                        }
-                                    }
-                                });
-                            }
-                            if (manufacturer) {
-                                conn.query('UPDATE product SET manufacturer = ?, date_last_updated = ? WHERE id = ?', [manufacturer, date_last_updated, req.params.id], (error, result) => {
-                                    if (error) {
-                                        console.log(error);
-                                        return res.status(400).json("Error updating product in Database.");
-                                    } else {
-                                        len--;
-                                        if (len == 0) {
-                                            return res.status(204).json('Product successfully updated');
-                                        }
-                                    }
-                                });
-                            }
-                            if (quantity) {
-                                if (quantity < 0) {
-                                    return res.status(400).json('Quantity should be positive.');
-                                }
-                                if (quantity > 100) {
-                                    return res.status(400).json('Quantity should be max 100.');
-                                }
-                                if (isString(quantity)) {
-                                    return res.status(400).json('Quantity should be integer.');
-                                }
-                                conn.query('UPDATE product SET quantity = ?, date_last_updated = ? WHERE id = ?', [quantity, date_last_updated, req.params.id], (error, result) => {
-                                    if (error) {
-                                        console.log(error);
-                                        return res.status(400).json("Error updating product in Database.");
-                                    } else {
-                                        len--;
-                                        if (len == 0) {
-                                            return res.status(204).json('Product successfully updated');
-                                        }
-                                    }
-                                });
-                            }
-
-                            if (sku) {
-                                conn.query('SELECT count(*) AS cnt FROM product WHERE sku = ? and id != ? ', [req.body.sku, req.params.id], (err, response) => {
-                                    if (response[0].cnt != 0) {
-                                        return res.status(400).json("Product with same sku already exists. Enter new sku");
-                                    } else {
-                                        conn.query('UPDATE product SET sku  = ?, date_last_updated = ? WHERE id = ?', [sku, date_last_updated, req.params.id], (error, result) => {
-                                            if (error) {
-                                                console.log(error);
-                                                return res.status(400).json("Error updating product in Database.");
-                                            } else {
-                                                len--;
-                                                if (len == 0) {
-                                                    return res.status(204).json('Product successfully updated');
-                                                }
-                                            }
-                                        });
-                                    }
-
-                                });
-                            }
-
-
-                            /*conn.query('SELECT * FROM product WHERE owner_user_id = ? and id = ? ', [response[0].id, req.params.id], (err, response2) => {
-                                if(!name){
-                                    conn.query('UPDATE product SET name = ?, date_last_updated = ? WHERE id = ?', [name, date_last_updated, req.params.id], (error, result) => {
-                                    if (error) {
-                                        console.log(error);
-                                        //return res.status(400).json("Error updating product in Database.");
-                                    } else {
-                                        //return res.status(204).json('Product successfully updated');
-
-                                    }
-                                });
-                                }
-                                //console.log(response[0]);
-                                //console.log(response2[0].name);
-                                console.log(name);
-                                    
-                                
-                                description = response2[0].description;
-                                sku = response2[0].sku;
-                                manufacturer = response2[0].manufacturer;
-                                quantity = response2[0].quantity;
-                                //const date_last_updated = new Date().toISOString();
-                            });
-                            console.log(name);
-                            if(req.body.sku){
-                                sku = req.body.sku;
-                            }
-                            if(req.body.manufacturer){
-                                manufacturer = req.body.manufacturer;
-                            }
-                            if(req.body.quantity){
-                                quantity = req.body.quantity;
-                            }
-                            //console.log(name);
-                            var owner_user_id
-                            conn.query('SELECT id as id FROM users WHERE username = ?', [username], async (err, response) => {
-                                owner_user_id = response[0].id;
-                            });
-                            
-                            
-                            if (quantity && quantity < 0) {
-                                return res.status(400).json('Quantity should be positive.');
-                            }
-                            if (quantity && quantity > 100) {
-                                return res.status(400).json('Quantity should be max 100.');
-                            }
-                            if (quantity && isString(quantity)) {
-                                return res.status(400).json('Quantity should be integer.');
-                            }
-                            if (req.body.id || req.body.date_added || req.body.date_last_updated || req.body.owner_user_id) {
-                                return res.status(400).json("Enter only name, description, sku, manufacturer and quantity");
-                            }
-                            if(req.body.hasOwnProperty('sku')){
-                                conn.query('SELECT count(*) AS cnt FROM product WHERE sku = ? and id != ? ', [req.body.sku, req.params.id], (err, response) => {
-                                    if (response[0].cnt != 0) {
-                                        return res.status(400).json("Product with same sku already exists. Enter new sku");
-                                    } else {
-                                        conn.query('UPDATE product SET name = ?, description = ?,sku  = ?, manufacturer = ?, quantity = ?, date_last_updated = ? WHERE id = ?', [name, description, sku, manufacturer, quantity, date_last_updated, req.params.id], (error, result) => {
-                                            if (error) {
-                                                console.log(error);
-                                                return res.status(400).json("Error updating product in Database.");
-                                            } else {
-                                                return res.status(204).json('Product successfully updated');
-    
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                            else{
-                                conn.query('UPDATE product SET name = ?, description = ?,sku  = ?, manufacturer = ?, quantity = ?, date_last_updated = ? WHERE id = ?', [name, description, sku, manufacturer, quantity, date_last_updated, req.params.id], (error, result) => {
-                                    if (error) {
-                                        console.log(error);
-                                        return res.status(400).json("Error updating product in Database.");
-                                    } else {
-                                        return res.status(204).json('Product successfully updated');
-
-                                    }
-                                });
-                            }*/
-
-                        }
-                    });
-
-                }
+        const id = req.params.productId;
+        const pid = parseInt(id);
+        if (pid != id) {
+            return res.status(400).send({
+                error: "Invalid Product Id",
             });
+        }
+
+        const {
+            name,
+            description,
+            sku,
+            manufacturer,
+            quantity
+        } = req.body;
+        const searchProduct = await Product.findOne({
+            where: {
+                id: id
+            }
+        });
+
+        if (searchProduct == null) {
+            return res.status(404).send({
+                message: " Product Not Found"
+            });
+        }
+
+        if (await authUser(username, id)) {
+            const fields = req.body;
+            for (const key in fields) {
+                if (
+                    key !== "name" &&
+                    key !== "description" &&
+                    key !== "sku" &&
+                    key !== "manufacturer" &&
+                    key != "quantity"
+                ) {
+                    return res.status(400).send({
+                        error: "Invalid field in request body",
+                    });
+                }
+            }
+
+            if (
+                req.body.name === null ||
+                req.body.manufacturer === null ||
+                req.body.description === null ||
+                req.body.sku === null ||
+                req.body.quantity === null
+            ) {
+                return res
+                    .status(400)
+                    .send({
+                        error: "Value cannot be null"
+                    });
+            }
+
+            if (
+                !req.body.name &&
+                !req.body.description &&
+                !req.body.sku &&
+                !req.body.manufacturer &&
+                req.body.quantity == null
+            ) {
+                return res.status(400).send({
+                    error: "Bad Request: Please add atleast one field to update",
+                });
+            }
+            if (sku) {
+                if (await checkSku(sku, id)) {
+                    return res.status(400).send({
+                        error: "Bad Request: Duplicate SKU",
+                    });
+                }
+            }
+
+            if (quantity) {
+                if (!Number.isInteger(quantity)) {
+                    return res.status(400).send({
+                        error: "Quantity cannot be string",
+                    });
+                }
+            }
+            const item = req.body;
+            const patchProduct = await Product.update({
+                name: name || searchProduct.dataValues.name,
+                description: description || searchProduct.dataValues.description,
+                sku: sku || searchProduct.dataValues.sku,
+                manufacturer: manufacturer || searchProduct.dataValues.manufacturer,
+                quantity: quantity || searchProduct.dataValues.quantity,
+                date_added: new Date().toISOString(),
+            }, {
+                where: {
+                    id: id
+                },
+            });
+
+            res.status(204).send({
+                message: "Product Updated"
+            });
+        } else {
+            res.status(403).send({
+                message: "Forbidden"
+            });
+        }
+    } catch (err) {
+        res.status(400).json({
+            message: "Bad Request",
+            error: err.message
+        });
+        console.log(err);
+    }
+
+}
+
+const getUsername = (req) => {
+    const decoded = Buffer.from(
+        req.get("Authorization").split(" ")[1],
+        "base64"
+    ).toString();
+    const [username, pass] = decoded.split(":");
+    return username;
+};
+
+const authUser = async (username, id) => {
+    const sql1 = await User.findOne({
+        where: {
+            username: username
+        }
+    });
+    const ownerId1 = sql1.dataValues.id;
+    const searchProduct = await Product.findOne({
+        where: {
+            id: id
         }
     });
 
-}
+    const ownerId2 = searchProduct.dataValues.owner_user_id;
+
+    if (ownerId1 != ownerId2) {
+        return false;
+    } else {
+        return true;
+    }
+};
+
+const checkSku = async (sku, id) => {
+    if (id == null) {
+        var sql = await Product.findOne({
+            where: {
+                sku: sku
+            }
+        });
+    } else {
+        var sql = await Product.findOne({
+            where: {
+                sku: sku,
+                id: {
+                    [Op.ne]: id
+                }
+            },
+        });
+    }
+    if (sql) {
+        return true;
+    } else {
+        return false;
+    }
+};
