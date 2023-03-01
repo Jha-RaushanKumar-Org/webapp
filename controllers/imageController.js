@@ -12,7 +12,7 @@ const {
 
 const s3 = new S3Client({
   region: process.env.BUCKET_REGION,
-  
+
 });
 
 const randomImageName = (filename) => {
@@ -61,7 +61,7 @@ const addImage = async (req, res, next) => {
     const productIdCheck = parseInt(productId);
     if (productIdCheck != productId) {
       return res.status(400).send({
-        error: "Bad Request: Invalid Product Id",
+        error: "Invalid Product Id",
       });
     }
 
@@ -95,13 +95,13 @@ const addImage = async (req, res, next) => {
       });
     } else {
       return res.status(403).json({
-        message: "You are not authorized to add images to this product.",
+        message: "Not authorized to add images to this product.",
       });
     }
   } catch (error) {
     console.log(error);
     res.status(400).json({
-      message: "Failed to add product image"
+      message: "Failed to add image"
     });
   }
 };
@@ -116,7 +116,7 @@ const getImage = async (req, res, next) => {
     const productIdCheck = parseInt(productId);
     if (productIdCheck != productId) {
       return res.status(400).send({
-        error: "Bad Request: Invalid Product Id",
+        error: "Invalid Product Id",
       });
     }
 
@@ -124,7 +124,7 @@ const getImage = async (req, res, next) => {
     const imgIdCheck = parseInt(id);
     if (imgIdCheck != id) {
       return res.status(400).send({
-        error: "Bad Request: Invalid Image Id",
+        error: "Invalid Image Id",
       });
     }
     if (await authUser(req, productId)) {
@@ -143,7 +143,7 @@ const getImage = async (req, res, next) => {
       }
     } else {
       return res.status(403).json({
-        message: "You are not authorized to view images of this product.",
+        message: "Not authorized to view images of this product.",
       });
     }
   } catch (error) {
@@ -163,7 +163,7 @@ const getAllImages = async (req, res, next) => {
     const productIdCheck = parseInt(productId);
     if (productIdCheck != productId) {
       return res.status(400).send({
-        error: "Bad Request: Invalid Product Id",
+        error: "Invalid Product Id",
       });
     }
 
@@ -182,7 +182,7 @@ const getAllImages = async (req, res, next) => {
       }
     } else {
       return res.status(403).json({
-        message: "You are not authorized to view images of this product.",
+        message: "Not authorized to view images of this product.",
       });
     }
   } catch (error) {
@@ -202,7 +202,7 @@ const deleteImage = async (req, res, next) => {
     const productIdCheck = parseInt(productId);
     if (productIdCheck != productId) {
       return res.status(400).send({
-        error: "Bad Request: Invalid Product Id",
+        error: "Invalid Product Id",
       });
     }
 
@@ -210,7 +210,7 @@ const deleteImage = async (req, res, next) => {
     const imgIdCheck = parseInt(id);
     if (imgIdCheck != id) {
       return res.status(400).send({
-        error: "Bad Request: Invalid Image Id",
+        error: "Invalid Image Id",
       });
     }
 
@@ -232,24 +232,6 @@ const deleteImage = async (req, res, next) => {
         var url = image.s3_bucket_path;
         var filename = url.split('/').pop();
         console.log(filename);
-        // const params = {
-        //   Bucket: process.env.BUCKET_NAME,
-        //   Key: filename,
-        // };
-        // s3.deleteObject({
-        //   Bucket: process.env.BUCKET_NAME,
-        //   Key: filename
-        // }, (err, data) => {
-        //   if (err) {
-        //     return response.status(400).json(err);
-        //   }
-        // });
-        //await s3.deleteObject(params);
-        // const data = await s3.send(new PutObjectCommand(params));
-        // s3.deleteObject({
-        //   Bucket: process.env.BUCKET_NAME,
-        //   Key: '${filename}',
-        // },function (err,data){})
         const params = {
           Bucket: process.env.BUCKET_NAME,
           Key: filename,
@@ -264,7 +246,7 @@ const deleteImage = async (req, res, next) => {
       }
     } else {
       return res.status(403).json({
-        message: "You are not authorized to delete images of this product.",
+        message: "Not authorized to delete images of this product.",
       });
     }
   } catch (error) {
