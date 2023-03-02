@@ -7,7 +7,17 @@ const Product = db.models.Product;
 const Op = Sequelize.Op;
 const basicAuthentication = require('../utils');
 const comparePasswords = require('../utils');
+const Image = db.models.images;
 
+const {
+    S3Client,
+    DeleteObjectCommand
+} = require("@aws-sdk/client-s3");
+
+const s3 = new S3Client({
+    region: process.env.BUCKET_REGION,
+
+});
 
 exports.createProduct = async function (req, res) {
 
@@ -165,6 +175,27 @@ exports.deleteProduct = async function (req, res) {
         }
 
         if (await authUser(username, id)) {
+            const images = await Image.findAll({
+                where: {
+                    product_id: id
+                }
+            });
+            if (images && images.length > 0) {
+                for (let i = 0; i < images.length; i++) {
+                    const params = {
+                        Bucket: process.env.BUCKET_NAME,
+                        Key: images[i].dataValues.s3_bucket_path.split("/").pop(),
+                    };
+                    await s3.send(new DeleteObjectCommand(params));
+                }
+                await Image.destroy({
+                    where: {
+                        product_id: id
+                    }
+                });
+            }
+
+
             const results = await Product.destroy({
                 where: {
                     id: id
