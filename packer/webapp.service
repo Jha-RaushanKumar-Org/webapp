@@ -12,6 +12,7 @@ Restart=always
 User=ec2-user
 StandardOutput=syslog
 StandardError=syslog
+SyslogIdentifier=WebApp
 
 [Install]
 WantedBy=multi-user.target
