@@ -13,8 +13,8 @@ mkdir log
 
 sleep 10
 echo "CloudwatchAgent Installation Started"
-sudo curl -o /root/amazon-cloudwatch-agent.deb https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb
-sudo dpkg -i -E /root/amazon-cloudwatch-agent.deb
+sudo wget https://s3.us-east-1.amazonaws.com/amazoncloudwatch-agent-us-east-1/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+sudo dpkg -i -E ./amazon-cloudwatch-agent.deb
 echo "CloudwatchAgent Installation Completed!"
 
 echo "##Unzipping of Application##"
