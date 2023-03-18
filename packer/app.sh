@@ -12,6 +12,15 @@ sleep 10
 mkdir log
 
 sleep 10
+
+echo "##Unzipping of Application##"
+
+sudo yum install unzip -y
+
+
+mkdir ~/webapp
+
+unzip webapp.zip -d ~/webapp
 echo "CloudwatchAgent Installation Started"
 sudo yum install amazon-cloudwatch-agent -y 
 
@@ -22,15 +31,9 @@ sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
 -s
 echo "CloudwatchAgent Installation Completed!"
 
-echo "##Unzipping of Application##"
-
-sudo yum install unzip -y
-
-
-mkdir ~/webapp
-
-unzip webapp.zip -d ~/webapp
 cd ~/webapp && npm i
+
+
 
 sudo mv /tmp/webapp.service /etc/systemd/system/webapp.service
 sudo systemctl enable webapp.service
