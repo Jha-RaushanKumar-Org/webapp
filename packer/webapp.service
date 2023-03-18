@@ -6,9 +6,9 @@ After=network.target
 WorkingDirectory=/home/ec2-user/webapp
 Environment=NODE_PORT=3000
 Type=simple
-ExecStartPre=sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/home/ec2-user/webapp/cloudwatch-config.json -s
 ExecStart=/usr/bin/node /home/ec2-user/webapp/app.js
 Restart=always
+RestartSec=10
 User=ec2-user
 StandardOutput=syslog
 StandardError=syslog

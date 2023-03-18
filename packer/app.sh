@@ -17,12 +17,12 @@ echo "##Unzipping of Application##"
 
 sudo yum install unzip -y
 
-
 mkdir ~/webapp
 
 unzip webapp.zip -d ~/webapp
 echo "CloudwatchAgent Installation Started"
-sudo yum install amazon-cloudwatch-agent -y 
+sudo wget https://s3.us-east-1.amazonaws.com/amazoncloudwatch-agent-us-east-1/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+sudo rpm -U ./amazon-cloudwatch-agent.rpm
 
 echo "CloudwatchAgent Installation Completed!"
 
