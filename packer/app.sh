@@ -13,10 +13,13 @@ mkdir log
 
 sleep 10
 echo "CloudwatchAgent Installation Started"
-sudo wget https://s3.us-east-1.amazonaws.com/amazoncloudwatch-agent-us-east-1/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
-echo "yum install dpkg"
-sudo yum install dpkg
-sudo dpkg -i -E ./amazon-cloudwatch-agent.deb
+sudo yum install amazon-cloudwatch-agent -y 
+
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+-a fetch-config \
+-m ec2 \
+-c file:/home/ec2-user/webapp/cloudwatch-config.json \
+-s
 echo "CloudwatchAgent Installation Completed!"
 
 echo "##Unzipping of Application##"
