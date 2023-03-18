@@ -14,6 +14,8 @@ mkdir log
 sleep 10
 echo "CloudwatchAgent Installation Started"
 sudo wget https://s3.us-east-1.amazonaws.com/amazoncloudwatch-agent-us-east-1/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+echo "yum install dpkg"
+sudo yum install dpkg
 sudo dpkg -i -E ./amazon-cloudwatch-agent.deb
 echo "CloudwatchAgent Installation Completed!"
 
