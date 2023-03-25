@@ -28,11 +28,16 @@ variable "zip_file_path" {
   default   = ""
 }
 
+variable "ami_users" {
+  type    = list(string)
+  default = ["319887499001", "211329444002"]
+}
+
 
 source "amazon-ebs" "backendApp" {
   region        = "${var.aws_region}"
   instance_type = "t2.micro"
-  ami_users     = ["319887499001","211329444002"]
+  ami_users     = "${var.ami_users}"
   
   source_ami_filter {
     filters = {

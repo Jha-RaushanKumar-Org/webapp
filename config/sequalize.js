@@ -14,6 +14,8 @@ db.models.User = require('./user')(sequelize, Sequelize.DataTypes);
 db.models.Product = require('./product')(sequelize, Sequelize.DataTypes);
 db.models.images = require("./image")(sequelize, Sequelize);
 (async () => {
-    await db.sequelize.sync({ alter: true });
+    await db.sequelize.sync({
+        alter: true
+    });
 })();
 module.exports = db;

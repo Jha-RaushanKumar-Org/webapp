@@ -17,7 +17,7 @@ echo "##Unzipping of Application##"
 
 sudo yum install unzip -y
 
-mkdir ~/webapp
+mkdir ~/webapp 
 
 unzip webapp.zip -d ~/webapp
 echo "CloudwatchAgent Installation Started"

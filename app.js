@@ -20,7 +20,7 @@ app.listen(PORT, () => console.log(`Server running on :${PORT}`));
 //             })();
 //         });
 //         conn.query(`USE ${new_db}`,(error,result)=>{
-            
+
 //         });
 //         /*
 //         const createTable = `CREATE TABLE IF NOT EXISTS users(id int NOT NULL PRIMARY KEY AUTO_INCREMENT, \
@@ -31,7 +31,7 @@ app.listen(PORT, () => console.log(`Server running on :${PORT}`));
 //             account_created VARCHAR(255), \
 //             account_updated VARCHAR(255)  \
 //         );`
-        
+
 //         conn.query(createTable, (err, res) => {
 //             if (err) throw err;
 //         })*/
@@ -39,4 +39,3 @@ app.listen(PORT, () => console.log(`Server running on :${PORT}`));
 //         console.error(err);
 //     }
 // });
-

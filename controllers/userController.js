@@ -4,10 +4,16 @@ const db = require("../config/sequalize");
 const User = db.models.User;
 const basicAuthentication = require('../utils');
 const comparePasswords = require('../utils');
-
+const logger = require('../logging');
+const StatsD = require("node-statsd");
+const metricCounter = new StatsD({
+    host: "localhost",
+    port: 8125
+});
 
 exports.createUser = async function (req, res) {
-
+    logger.info("User Creation Post Call");
+    metricCounter.increment('POST/v1/user');
     try {
         const fields = req.body;
         for (const key in fields) {
@@ -17,6 +23,7 @@ exports.createUser = async function (req, res) {
                 key !== "password" &&
                 key !== "username"
             ) {
+                logger.error("Not a valid request, Invalid fields provided");
                 return res.status(400).send({
                     error: "Invalid field in request body",
                 });
@@ -29,6 +36,7 @@ exports.createUser = async function (req, res) {
             !req.body.first_name ||
             !req.body.last_name
         ) {
+            logger.error("Null field in request");
             return res.status(400).send({
                 error: "Null field in request body",
             });
@@ -50,6 +58,7 @@ exports.createUser = async function (req, res) {
                 }
             });
             if (checkEmail) {
+                logger.error("Duplicate email provided");
                 return res.status(400).send({
                     error: "Duplicate email",
                 });
@@ -63,6 +72,7 @@ exports.createUser = async function (req, res) {
                 account_created: new Date().toISOString(),
                 account_updated: new Date().toISOString(),
             });
+            logger.info('User successfully created');
             res.status(201).send({
                 id: user.id,
                 username: user.username,
@@ -73,6 +83,7 @@ exports.createUser = async function (req, res) {
             });
             console.log(user);
         } else {
+            logger.error("Not a valid email");
             throw Error("Please enter valid email");
         }
     } catch (err) {
@@ -85,7 +96,8 @@ exports.createUser = async function (req, res) {
 }
 
 exports.getUser = async function (req, res) {
-
+    logger.info("User Retrieval Get Call");
+    metricCounter.increment('GET/v1/user/userId');
     try {
         const id = req.params.userId;
         const results = await User.findOne({
@@ -109,18 +121,20 @@ exports.getUser = async function (req, res) {
 }
 
 exports.updateUser = async function (req, res) {
-
-    {
+    logger.info("User Update Put Call");
+    metricCounter.increment('PUT/v1/user/userId'); {
         try {
             const fields = req.body;
             for (const key in fields) {
                 if (key !== "first_name" && key !== "last_name" && key !== "password" && key != "username") {
+                    logger.error("Invalid field in request");
                     return res.status(400).send({
                         error: "Invalid field in request body",
                     });
                 }
             }
             if (!req.body.password || !req.body.first_name || !req.body.last_name) {
+                logger.error("Missing field in request");
                 return res.status(400).send({
                     error: "Required field missing",
                 });
@@ -144,7 +158,7 @@ exports.updateUser = async function (req, res) {
                     id: id
                 }
             });
-
+            logger.info('User successfully updated');
             res.status(204).send({
                 message: "user updated"
             });
