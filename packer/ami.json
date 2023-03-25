@@ -1,16 +1,12 @@
 {
     "variables": {
         "ssh_username": "ec2-user"
-
-        
     },
     "builders": [
         {
             "type": "amazon-ebs",
-            
             "instance_type": "t2.micro",
             "ssh_username": "{{user `ssh_username`}}",
-            
             "ami_block_device_mappings": [
                 {
                     "delete_on_termination": true,

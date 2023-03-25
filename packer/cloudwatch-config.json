@@ -1,7 +1,7 @@
 {
     "agent": {
         "metrics_collection_interval": 10,
-        "logfile": "/var/logs/amazon-cloudwatch-agent.log"
+        "logfile": "/var/log/amazon/amazon-cloudwatch-agent/amazon-cloudwatch-agent.log"
     },
     "logs": {
         "logs_collected": {
@@ -12,7 +12,7 @@
                         "log_group_name": "csye6225",
                         "log_stream_name": "webapp",
                         "timestamp_format": "%H:%M:%S %y %b %-d"
-                      }
+                    }
                 ]
             }
         },
@@ -23,7 +23,7 @@
             "statsd": {
                 "service_address": ":8125",
                 "metrics_collection_interval": 15,
-                "metrics_aggregation_interval": 300
+                "metrics_aggregation_interval": 60
             }
         }
     }

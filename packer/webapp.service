@@ -8,11 +8,7 @@ Environment=NODE_PORT=3000
 Type=simple
 ExecStart=/usr/bin/node /home/ec2-user/webapp/app.js
 Restart=always
-RestartSec=10
 User=ec2-user
-StandardOutput=syslog
-StandardError=syslog
-SyslogIdentifier=WebApp
 
 [Install]
 WantedBy=multi-user.target
