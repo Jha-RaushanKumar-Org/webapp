@@ -3,7 +3,12 @@ const User = db.models.User;
 const Images = db.models.images;
 const Product = db.models.Product;
 const Crypto = require("crypto");
-
+const logger = require('../logging');
+const StatsD = require("node-statsd");
+const metricCounter = new StatsD({
+    host: "localhost",
+    port: 8125
+});
 const {
   S3Client,
   DeleteObjectCommand,
@@ -53,6 +58,8 @@ const authUser = async (req, productId) => {
 };
 
 const addImage = async (req, res, next) => {
+  logger.info("Image Addition Post Call");
+  metricCounter.increment('POST/v1/product/productId/image');
   try {
     const {
       productId
@@ -60,6 +67,7 @@ const addImage = async (req, res, next) => {
 
     const productIdCheck = parseInt(productId);
     if (productIdCheck != productId) {
+      logger.error("Invalid Product Id provided");
       return res.status(400).send({
         error: "Invalid Product Id",
       });
@@ -93,7 +101,9 @@ const addImage = async (req, res, next) => {
         s3_bucket_path: image.dataValues.s3_bucket_path,
         date_created: image.dataValues.date_created,
       });
+      logger.info('Image successfully added');
     } else {
+      logger.error("User not authorized");
       return res.status(403).json({
         message: "Not authorized to add images to this product.",
       });
@@ -107,6 +117,8 @@ const addImage = async (req, res, next) => {
 };
 
 const getImage = async (req, res, next) => {
+  logger.info("Image Retrieval Get Call");
+  metricCounter.increment('GET/v1/product/productId/image/imageId');
   try {
     const {
       productId,
@@ -115,6 +127,7 @@ const getImage = async (req, res, next) => {
 
     const productIdCheck = parseInt(productId);
     if (productIdCheck != productId) {
+      logger.error("Invalid Product Id provided");
       return res.status(400).send({
         error: "Invalid Product Id",
       });
@@ -123,6 +136,7 @@ const getImage = async (req, res, next) => {
     const id = req.params.imageId;
     const imgIdCheck = parseInt(id);
     if (imgIdCheck != id) {
+      logger.error("Invalid Image Id provided");
       return res.status(400).send({
         error: "Invalid Image Id",
       });
@@ -135,13 +149,16 @@ const getImage = async (req, res, next) => {
         },
       });
       if (image) {
+        logger.info('Image successfully retrieved');
         res.json(image);
       } else {
+        logger.error("Image doesn't exist, not found");
         res.status(404).json({
           message: "Image not found"
         });
       }
     } else {
+      logger.error("User not authorized");
       return res.status(403).json({
         message: "Not authorized to view images of this product.",
       });
@@ -155,6 +172,8 @@ const getImage = async (req, res, next) => {
 };
 
 const getAllImages = async (req, res, next) => {
+  logger.info("Images Retrieval Get Call");
+  metricCounter.increment('GET/v1/product/productId/image');
   try {
     const {
       productId
@@ -162,6 +181,7 @@ const getAllImages = async (req, res, next) => {
 
     const productIdCheck = parseInt(productId);
     if (productIdCheck != productId) {
+      logger.error("Invalid Product Id provided");
       return res.status(400).send({
         error: "Invalid Product Id",
       });
@@ -174,13 +194,16 @@ const getAllImages = async (req, res, next) => {
         },
       });
       if (images) {
+        logger.info('Images Retrieved successfully');
         res.json(images);
       } else {
+        logger.error("Image doesn't exist, not found");
         res.status(404).json({
           message: "Images not found"
         });
       }
     } else {
+      logger.error("User not authorized");
       return res.status(403).json({
         message: "Not authorized to view images of this product.",
       });
@@ -193,6 +216,8 @@ const getAllImages = async (req, res, next) => {
 };
 
 const deleteImage = async (req, res, next) => {
+  logger.info("Images Deletion delete Call");
+  metricCounter.increment('DELETE/v1/product/productId/image/imageId');
   try {
     const {
       productId,
@@ -201,6 +226,7 @@ const deleteImage = async (req, res, next) => {
 
     const productIdCheck = parseInt(productId);
     if (productIdCheck != productId) {
+      logger.error("Invalid Product Id provided");
       return res.status(400).send({
         error: "Invalid Product Id",
       });
@@ -209,6 +235,7 @@ const deleteImage = async (req, res, next) => {
     const id = req.params.imageId;
     const imgIdCheck = parseInt(id);
     if (imgIdCheck != id) {
+      logger.error("Invalid Image Id provided");
       return res.status(400).send({
         error: "Invalid Image Id",
       });
@@ -222,6 +249,7 @@ const deleteImage = async (req, res, next) => {
         },
       });
       if (!image) {
+        logger.error("Image doesn't exist, not found");
         res.status(404).json({
           message: "Image not found"
         });
@@ -240,11 +268,13 @@ const deleteImage = async (req, res, next) => {
           new DeleteObjectCommand(params)
         );
         await image.destroy();
+        logger.info('Image successfully deleted');
         res.status(204).json({
           message: "Image deleted successfully"
         });
       }
     } else {
+      logger.error("User not authorized");
       return res.status(403).json({
         message: "Not authorized to delete images of this product.",
       });

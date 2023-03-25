@@ -8,7 +8,12 @@ const Op = Sequelize.Op;
 const basicAuthentication = require('../utils');
 const comparePasswords = require('../utils');
 const Image = db.models.images;
-
+const logger = require('../logging');
+const StatsD = require("node-statsd");
+const metricCounter = new StatsD({
+    host: "localhost",
+    port: 8125
+});
 const {
     S3Client,
     DeleteObjectCommand
@@ -20,7 +25,8 @@ const s3 = new S3Client({
 });
 
 exports.createProduct = async function (req, res) {
-
+    logger.info("Product Creation Post Call");
+    metricCounter.increment('POST/v1/product');
     try {
         const fields = req.body;
         for (const key in fields) {
@@ -31,6 +37,7 @@ exports.createProduct = async function (req, res) {
                 key !== "manufacturer" &&
                 key != "quantity"
             ) {
+                logger.error("Not a valid request, Invalid fields provided");
                 return res.status(400).send({
                     error: "Invalid field in request body",
                 });
@@ -43,6 +50,7 @@ exports.createProduct = async function (req, res) {
             !req.body.manufacturer ||
             req.body.quantity == null
         ) {
+            logger.error("Missing field in request");
             return res.status(400).send({
                 error: "Missing field in request body",
             });
@@ -64,6 +72,7 @@ exports.createProduct = async function (req, res) {
 
         if (!(await checkSku(sku))) {
             if (!Number.isInteger(quantity)) {
+                logger.error("Invalid quantity datatype(String)");
                 return res.status(400).send({
                     error: "Quantity cannot be string",
                 });
@@ -78,6 +87,7 @@ exports.createProduct = async function (req, res) {
                 date_last_updated: new Date().toISOString(),
                 owner_user_id: owner.dataValues.id,
             });
+            logger.info('Product successfully created');
             res.status(201).send({
                 id: addProduct.dataValues.id,
                 name: addProduct.dataValues.name,
@@ -90,6 +100,7 @@ exports.createProduct = async function (req, res) {
                 owner_user_id: addProduct.dataValues.owner_user_id,
             });
         } else {
+            logger.error("Duplicate SKU provided");
             res.status(400).send({
                 error: "Duplicate SKU",
             });
@@ -109,12 +120,14 @@ function isString(input) {
 }
 
 exports.getProduct = async function (req, res) {
-
+    logger.info("Product Retrieval Get Call");
+    metricCounter.increment('GET/v1/product/productId');
     try {
         const id = req.params.productId;
 
         const pid = parseInt(id);
         if (pid != id) {
+            logger.error("Invalid Product Id provided");
             return res.status(400).send({
                 error: "Invalid Product Id",
             });
@@ -138,6 +151,7 @@ exports.getProduct = async function (req, res) {
                 owner: results.dataValues.owner_user_id,
             });
         } else {
+            logger.error("Product doesn't exist, not found");
             res.status(404).send({
                 message: "Not Found"
             });
@@ -151,12 +165,14 @@ exports.getProduct = async function (req, res) {
 }
 
 exports.deleteProduct = async function (req, res) {
-
+    logger.info("Product Deletion Delete Call");
+    metricCounter.increment('DELETE/v1/product/productId');
     try {
         const username = getUsername(req);
         const id = req.params.productId;
         const pid = parseInt(id);
         if (pid != id) {
+            logger.error("Invalid Product Id provided");
             return res.status(400).send({
                 error: "Invalid Product Id",
             });
@@ -169,6 +185,7 @@ exports.deleteProduct = async function (req, res) {
         });
 
         if (searchProduct == null) {
+            logger.error("Product doesn't exist, not found");
             return res.status(404).send({
                 message: "Product Not Found"
             });
@@ -201,8 +218,10 @@ exports.deleteProduct = async function (req, res) {
                     id: id
                 }
             });
+            logger.info('Product successfully deleted');
             res.status(204).send();
         } else {
+            logger.error("User not permitted to deleted this product");
             res.status(403).send({
                 message: "Forbidden"
             });
@@ -215,7 +234,8 @@ exports.deleteProduct = async function (req, res) {
 }
 
 exports.updateProduct = async function (req, res) {
-
+    logger.info("Product Update Put Call");
+    metricCounter.increment('PUT/v1/product/productId');
     try {
         const username = getUsername(req);
 
@@ -223,6 +243,7 @@ exports.updateProduct = async function (req, res) {
 
         const pid = parseInt(id);
         if (pid != id) {
+            logger.error("Invalid Product Id provided");
             return res.status(400).send({
                 error: "Invalid Product Id",
             });
@@ -243,6 +264,7 @@ exports.updateProduct = async function (req, res) {
         });
 
         if (searchProduct == null) {
+            logger.error("Product doesn't exist, not found");
             return res.status(404).send({
                 message: " Product Not Found"
             });
@@ -271,6 +293,7 @@ exports.updateProduct = async function (req, res) {
                 !req.body.manufacturer ||
                 req.body.quantity == null
             ) {
+                logger.error("Missing field in request");
                 return res.status(400).send({
                     error: "Missing field in request body",
                 });
@@ -278,6 +301,7 @@ exports.updateProduct = async function (req, res) {
 
             if (!(await checkSku(sku, id))) {
                 if (!Number.isInteger(quantity)) {
+                    logger.error("Invalid quantity datatype(String)");
                     return res.status(400).send({
                         error: "Quantity cannot be string",
                     });
@@ -294,13 +318,16 @@ exports.updateProduct = async function (req, res) {
                         id: id
                     }
                 });
+                logger.info('Product successfully updated');
                 res.status(204).send();
             } else {
+                logger.error("Duplicate SKU provided");
                 res.status(400).send({
                     error: "Duplicate SKU",
                 });
             }
         } else {
+            logger.error("User not permitted to deleted this product");
             res.status(403).send({
                 message: "Forbidden"
             });
@@ -316,13 +343,15 @@ exports.updateProduct = async function (req, res) {
 }
 
 exports.updatePatchProduct = async function (req, res) {
-
+    logger.info("Product Update Patch Call");
+    metricCounter.increment('PATCH/v1/product/productId');
     try {
         const username = getUsername(req);
 
         const id = req.params.productId;
         const pid = parseInt(id);
         if (pid != id) {
+            logger.error("Invalid Product Id provided");
             return res.status(400).send({
                 error: "Invalid Product Id",
             });
@@ -342,6 +371,7 @@ exports.updatePatchProduct = async function (req, res) {
         });
 
         if (searchProduct == null) {
+            logger.error("Product doesn't exist, not found");
             return res.status(404).send({
                 message: " Product Not Found"
             });
@@ -390,6 +420,7 @@ exports.updatePatchProduct = async function (req, res) {
             }
             if (sku) {
                 if (await checkSku(sku, id)) {
+                    logger.error("Duplicate SKU provided");
                     return res.status(400).send({
                         error: "Bad Request: Duplicate SKU",
                     });
@@ -398,6 +429,7 @@ exports.updatePatchProduct = async function (req, res) {
 
             if (quantity) {
                 if (!Number.isInteger(quantity)) {
+                    logger.error("Invalid quantity datatype(String)");
                     return res.status(400).send({
                         error: "Quantity cannot be string",
                     });
@@ -416,11 +448,13 @@ exports.updatePatchProduct = async function (req, res) {
                     id: id
                 },
             });
+            logger.info('Product successfully updated');
 
             res.status(204).send({
                 message: "Product Updated"
             });
         } else {
+            logger.error("User not permitted to deleted this product");
             res.status(403).send({
                 message: "Forbidden"
             });
