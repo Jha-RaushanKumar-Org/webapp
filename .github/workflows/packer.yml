@@ -7,9 +7,9 @@ jobs:
   build:
     name: packer workflow
     runs-on: ubuntu-latest
-    strategy: 
-        matrix:
-            node-version: [16.x]
+    strategy:
+      matrix:
+        node-version: [16.x]
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
@@ -23,19 +23,40 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      
+
       - name: Zip folder creation
         run: |
           mkdir app_artifact
           zip -r webapp . -x ".git/" ".github/" "node_modules/*" "package-lock.json"
           mv webapp.zip app_artifact
 
-      
       - name: Build Template
-        
+
         run: |
           cd packer
           packer init app.pkr.hcl
           packer validate app.pkr.hcl
-          packer build app.pkr.hcl 
-      
+          packer build app.pkr.hcl
+
+      - name: Get AMI ID and save it in Github env
+        run: |
+          echo AMI_ID=$(jq -r '.builds[-1].artifact_id' ./packer/manifest.json | cut -d ":" -f2) >> $GITHUB_ENV
+        shell: bash
+
+      - name: Create New Launch Template Version
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws ec2 create-launch-template-version --launch-template-name my_template --source-version 1 --launch-template-data '{"ImageId":"${{ env.AMI_ID }}"}'
+          echo "New Launch template version created"
+
+      - name: Instance refresh to use new Launch template version
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          aws autoscaling start-instance-refresh --auto-scaling-group-name autoscaling_group
+          echo "Instance refresh completed"
