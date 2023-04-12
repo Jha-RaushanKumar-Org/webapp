@@ -19,6 +19,10 @@ app.get("/healthz", (req, res) => {
   metricCounter.increment('Get/healthz');
   res.status(200).json();
 });
+app.get("/gethealthz", (req, res) => {
+  res.status(200).json();
+})
+
 
 app.get("/gethealth", (req, res) => {
   res.status(200).json({
