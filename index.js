@@ -21,13 +21,6 @@ app.get("/healthz", (req, res) => {
 });
 app.get("/gethealthz", (req, res) => {
   res.status(200).json();
-})
-
-
-app.get("/gethealth", (req, res) => {
-  res.status(200).json({
-    message: "Welcome!!",
-  });
 });
 
 routes(app);
