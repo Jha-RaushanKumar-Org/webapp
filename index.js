@@ -22,7 +22,11 @@ app.get("/healthz", (req, res) => {
 app.get("/gethealthz", (req, res) => {
   res.status(200).json();
 });
-
+app.get("/raushan", (req, res) => {
+  res.status(200).json({
+    message: "Welcome!!",
+  });
+});
 routes(app);
 
 // Handle undefined routes
